@@ -32,7 +32,7 @@ function open_db(file_path, create_if_missing)
                (Ptr{Void}, Ptr{UInt8}, Ptr{Ptr{UInt8}}) , options, file_path, err)
 
     if db == C_NULL
-        error(bytestring(err[1]))
+        error(unsafe_string(err[1]))
     end
     return db
 end
@@ -74,7 +74,7 @@ function db_delete(db, key)
     options = ccall( (:leveldb_writeoptions_create, libleveldbjl), Ptr{Void}, ())
     err = Ptr{UInt8}[0]
     ccall( (:leveldb_delete, libleveldbjl), Void,
-          (Ptr{Void}, Ptr{Void}, Ptr{UInt8}, UInt, Ptr{Ptr{UInt8}} ),
+          (Ptr{Void}, Ptr{Void}, Ptr{Void}, UInt, Ptr{Ptr{UInt8}} ),
           db, options, key, length(key), err)
     if err[1] != C_NULL
         error(bytestring(err[1]))
@@ -151,8 +151,8 @@ end
 type Range
   iter::Ptr{Void}
   options::Ptr{Void}
-  key_start::AbstractString
-  key_end::AbstractString
+  key_start::String
+  key_end::String
   destroyed::Bool
 end
 
@@ -178,7 +178,7 @@ function Base.start(range::Range)
   iter_seek(range.iter, range.key_start)
 end
 
-function Base.done(range::Range, state=Union{})
+function Base.done(range::Range, state=nothing)
   if range.destroyed
     return true
   end
@@ -189,11 +189,11 @@ function Base.done(range::Range, state=Union{})
   isdone
 end
 
-function Base.next(range::Range, state=Union{})
+function Base.next(range::Range, state=nothing)
   k = iter_key(range.iter)
   v = iter_value(range.iter)
   iter_next(range.iter)
-  ((k, v), Union{})
+  ((k, v), nothing)
 end
 
 
